@@ -291,11 +291,19 @@ def get_correct_window(driver: WebDriver) -> WebDriver:
     if len(driver.window_handles) > 1:
         for window_handle in driver.window_handles:
             driver.switch_to.window(window_handle)
+            time.sleep(1)
             current_url = driver.current_url
+            logging.debug(f"Current URL... {current_url}")
             if not current_url.startswith("devtools://devtools"):
                 return driver
     return driver
 
+def switch_to_new_tab(driver: WebDriver, url: str) -> None:
+    logging.debug("Opening new tab...")
+    driver.execute_script(f"window.open('{url}', 'new tab')")
+    time.sleep(8)
+    logging.debug("Closing original tab...")
+    driver.close()
 
 def access_page(driver: WebDriver, url: str) -> None:
     driver.get(url)
@@ -374,6 +382,12 @@ def _evil_logic(req: V1RequestBase, driver: WebDriver, method: str) -> Challenge
                     logging.debug("Waiting for title (attempt " + str(attempt) + "): " + title)
                     WebDriverWait(driver, SHORT_TIMEOUT).until_not(title_is(title))
 
+                if attempt in {4, 8, 12, 16, 20}:
+                    switch_to_new_tab(driver, req.url)
+                    time.sleep(1)
+                    driver = get_correct_window(driver)
+                    time.sleep(4)
+                    
                 # then wait until all the selectors disappear
                 for selector in CHALLENGE_SELECTORS:
                     logging.debug("Waiting for selector (attempt " + str(attempt) + "): " + selector)
